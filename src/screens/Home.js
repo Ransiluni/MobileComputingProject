@@ -1,13 +1,12 @@
-import React, {Component} from 'react';
+import React from 'react';
 import {Platform, StyleSheet, Text, Button, View,FlatList,TouchableOpacity} from 'react-native';
 import { SearchBar } from 'react-native-elements';
-import Navigator from '../Navigation/StackNavigation';
 
-
-
-// type Props = {};
-export default class HomeComponent extends React.Component {
-  state = {
+class Home extends React.Component {
+  static navigationOptions = {
+    title: 'Home'
+   };
+   state = {
     search: '',
     title:'Search',
   };
@@ -40,9 +39,8 @@ export default class HomeComponent extends React.Component {
         </TouchableOpacity></View>}/>
       </View>
     );
-  }
 }
-
+}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -80,3 +78,4 @@ const styles = StyleSheet.create({
     
   }
 });
+export default Home;
