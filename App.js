@@ -1,71 +1,28 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow
- */
-
 import React, {Component} from 'react';
-import {Platform, StyleSheet, Text, Button, View,FlatList} from 'react-native';
+import {Platform, StyleSheet, Text, Button, View,FlatList,TouchableOpacity} from 'react-native';
 import { SearchBar } from 'react-native-elements';
+import HomeComponent from './Components/HomeComponent';
+import Navigator from './Navigation/StackNavigation'
+import MapComponent from './Components/MapComponent';
 
-const instructions = Platform.select({
-  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
-  android:
-    'Double tap R on your keyboard to reload,\n' +
-    'Shake or press menu button for dev menu',
-});
 
-type Props = {};
-export default class App extends Component<Props> {
-  state = {
-    search: '',
-    title:'',
-  };
 
-  updateSearch = search => {
-    this.setState({ search });
-  };
-  render() {
-    const { search,title } = this.state;
-    
-    return (
-      
-      <View style={styles.container}>
+// type Props = {};
+// export default class App extends Component<Props> {
 
-      <SearchBar
-        containerStyle={{width:'90%',marginTop:40}}
-        placeholder="Type Here..."
-        onChangeText={this.updateSearch}
-        value={search}
-      />
-        <Button title={this.state.title} ></Button>
-        <FlatList   
-        data={[{key: 'a'}, {key: 'b'}]}
-        renderItem={({item}) => <Text>{item.key}</Text>} >
-        </FlatList>
-      </View>
-      
-    );
-  }
-}
+//   render() {
+//     return (
+//       <View style={styles.container}>
+//      <HomeComponent />
+//       </View>
+//     );
+//   }
+// }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-  },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
-  },
-});
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+// });
+const App = () => <Navigator/>
+export default App;
