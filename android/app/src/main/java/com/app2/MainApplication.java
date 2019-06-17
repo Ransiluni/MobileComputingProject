@@ -1,6 +1,10 @@
 package com.app2;
 
+import android.app.AlarmManager;
 import android.app.Application;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 
 import com.facebook.react.ReactApplication;
 import com.airbnb.android.react.maps.MapsPackage;
@@ -47,5 +51,13 @@ public class MainApplication extends Application implements ReactApplication {
   public void onCreate() {
     super.onCreate();
     SoLoader.init(this, /* native exopackage */ false);
+    AlarmManager scheduler = (AlarmManager) getBaseContext().getSystemService(Context.ALARM_SERVICE);
+    Intent intent = new Intent(getBaseContext(), SensorDetect.class);
+
+    PendingIntent scheduledIntent = PendingIntent.getService(getBaseContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    long interval = 1000L;
+
+    // start the service
+    scheduler.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+interval, scheduledIntent);
   }
 }
