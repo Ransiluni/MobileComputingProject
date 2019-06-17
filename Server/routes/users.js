@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 
 var mongoose = require('mongoose');
-mongoose.connect(process.env.MONGOLAB_URI); //'mongodb://127.0.0.1:27017/Chat'
+//mongoose.connect(process.env.MONGOLAB_URI); //'mongodb://127.0.0.1:27017/Chat'
 mongoose.Promise = global.Promise;
 var Schema = mongoose.Schema;
 
@@ -35,23 +35,26 @@ router.post('/login', function(req, res, next) {
   var username=req.body.username;
   var password=req.body.password;
 
-  UserData.find({ email: username, password: password})
-  .then(function(items) {
-    if(items.length===1){
-      res.send({
-        'success':true,
-        'user':username,
-    });
-    }
-    else{
-      res.send({
-        'message':'Wrong login credentials'
-      });
-    } 
-  })
-  .catch(function(err) {
-    console.log(err);
-  });  
+  console.log(username)
+  res.send(password)
+
+  // UserData.find({ email: username, password: password})
+  // .then(function(items) {
+  //   if(items.length===1){
+  //     res.send({
+  //       'success':true,
+  //       'user':username,
+  //   });
+  //   }
+  //   else{
+  //     res.send({
+  //       'message':'Wrong login credentials'
+  //     });
+  //   } 
+  // })
+  // .catch(function(err) {
+  //   console.log(err);
+  // });  
 });
 
-module.exports = router;
+module.exports = router;//

@@ -17,8 +17,9 @@ var http = require('http'),
     
     
     var indexRouter = require('./routes/index');
-    var usersRouter = require('./routes/users');
-    var messagesRouter = require('./routes/messages');
+    var usersRouter = require('./routes/place');
+    // var usersRouter = require('./routes/users');
+    // var messagesRouter = require('./routes/messages');
     
     var app = express();
     
@@ -28,14 +29,14 @@ var http = require('http'),
     app.set('view engine', 'jade');
     
     app.use(logger('dev'));
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: false }));
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: false }));
     app.use(cookieParser());
     app.use(express.static(path.join(__dirname, 'public')));
     
     app.use('/', indexRouter);
-    app.use('/users', usersRouter);
-    app.use('/messages', messagesRouter);
+    app.use('/place', usersRouter);
+    //app.use('/messages', messagesRouter);
     
     // catch 404 and forward to error handler
     app.use(function(req, res, next) {
@@ -54,18 +55,18 @@ var http = require('http'),
     });
     
     var server= require('http').createServer(app);
-    var io=require('socket.io')(server);
+    //var io=require('socket.io')(server);
     
     var port = process.env.PORT;
-    console.log('listening on'+port);
-    app.io = io;
-    io.on('connection', function (socket) {
-      console.log('connected'+socket.id)
-      socket.on('send',data=>{
-        console.log(data)
-      });
-    });
-    server.listen(port);
+    console.log('listening on '+port);
+    // app.io = io;
+    // io.on('connection', function (socket) {
+    //   console.log('connected'+socket.id)
+    //   socket.on('send',data=>{
+    //     console.log(data)
+    //   });
+    // });
+    server.listen("8000");
     
     
     module.exports = app;

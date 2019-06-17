@@ -2,8 +2,8 @@ var express = require('express');
 var router = express.Router();
 
 var mongoose = require('mongoose');
-mongoose.connect(process.env.MONGOLAB_URI);
-mongoose.Promise = global.Promise;
+//mongoose.connect(process.env.MONGOLAB_URI)
+//mongoose.Promise = global.Promise;
 var Schema = mongoose.Schema;
 
 var messageDataSchema = new Schema({
