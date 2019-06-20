@@ -9,8 +9,8 @@ var Schema = mongoose.Schema;
 var placeDataSchema = new Schema({
   _id:Number,
   place_name: String,
-  lat: Number,
-  long:Number,
+  lat: String,
+  long:String,
   type:String
 }, {collection: 'place'});
 
@@ -18,12 +18,13 @@ var PlaceData = mongoose.model('place', placeDataSchema);
 
 //pass place id when lat long given
 router.get('/provide/:lat/:long', function(req, res,next) {
-  var lat=req.params.lat; 
-  var long=req.params.long; 
-  console.log(lat,long);
-  PlaceData.find({  $and: [ {'lat':lat} , { 'long':long } ]})
+  var lat_c=req.params.lat; 
+  var long_c=req.params.long; 
+  console.log(lat_c,long_c);
+  //let query ={'lat':lat_c}
+  PlaceData.find({$and:[{'lat':lat_c},{'long':long_c}]},{ _id: 0, place_name: 1})
   .then(function(items) {
-    res.send({'results': items.place_name});
+    res.send({'results': items});
     console.log(items);
   })
   .catch(function(err) {
@@ -33,7 +34,7 @@ router.get('/provide/:lat/:long', function(req, res,next) {
 
 //send all place names with lat and long 
 router.get('/list', function(req, res,next) {
-  PlaceData.find({},{lat:1,long:1})
+  PlaceData.find({},{_id:0,lat:1,long:1})
   .then(function(items) {
     res.send({items});
     console.log(items);
@@ -43,4 +44,4 @@ router.get('/list', function(req, res,next) {
   }); 
 });
 
-module.exports = router;//
+module.exports = router;

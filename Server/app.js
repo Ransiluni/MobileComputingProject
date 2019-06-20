@@ -18,7 +18,7 @@ var http = require('http'),
     
     var indexRouter = require('./routes/index');
     var usersRouter = require('./routes/place');
-    // var usersRouter = require('./routes/users');
+    var dataRouter = require('./routes/sensor_data');
     // var messagesRouter = require('./routes/messages');
     
     var app = express();
@@ -36,7 +36,7 @@ var http = require('http'),
     
     app.use('/', indexRouter);
     app.use('/place', usersRouter);
-    //app.use('/messages', messagesRouter);
+    app.use('/data', dataRouter);
     
     // catch 404 and forward to error handler
     app.use(function(req, res, next) {
