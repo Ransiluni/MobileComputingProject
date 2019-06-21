@@ -36,6 +36,7 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -45,7 +46,7 @@ import java.util.Map;
 
 public class SensorDetect extends Service implements SensorEventListener , GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
 
-    private RequestQueue queue = Volley.newRequestQueue(this);
+    private RequestQueue queue ;
     private SensorManager sm;
     private GoogleApiClient mGoogleApiClient;
     private Location mLocation;
@@ -55,7 +56,7 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     private com.google.android.gms.location.LocationListener listener;
     private long UPDATE_INTERVAL = 2 * 1000;  /* 10 secs */
     private long FASTEST_INTERVAL = 2000; /* 2 sec */
-    private ArrayList<LatLng> restaurantLocations;
+    private ArrayList<LatLng> restaurantLocations =new ArrayList<LatLng>();
     private int currentRestaurant;
     private Sensor s;
 
@@ -70,8 +71,10 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     @Override
     public void onCreate() {
         super.onCreate();
+        queue= Volley.newRequestQueue(getBaseContext());
         sm=(SensorManager) getSystemService(SENSOR_SERVICE);
         s=sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        receiveRestaurantData();
         restaurantLocations.add(new LatLng(0.11,80.7700));  // add restaurant locations through HTTP call
 }
 
@@ -97,9 +100,12 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mGoogleApiClient.isConnected()) {
-            mGoogleApiClient.disconnect();
+        if(mGoogleApiClient != null){
+            if (mGoogleApiClient.isConnected()) {
+                mGoogleApiClient.disconnect();
+            }
         }
+
         sm.unregisterListener(this);
         Toast.makeText(this, "Service Destroyed", Toast.LENGTH_LONG).show();
     }
@@ -113,49 +119,39 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     }
 
     private void sendSensorData(float value,int restaurantID){
-        String url = "http://httpbin.org/post";
-        StringRequest postRequest = new StringRequest(Request.Method.POST, url,
-                response -> {
-                    // response
-                    Log.d("Response", response);
-                }, error -> {
-                    // error
-                    Log.d("Error.Response", String.valueOf(error));
-                }
-        ) {
-            @Override
-            protected Map<String, String> getParams()
-            {
-                Map<String, String>  params = new HashMap<String, String>();
-                params.put("id", String.valueOf(restaurantID));
-                params.put("value", String.valueOf(value));
-                return params;
-            }
-        };
-        queue.add(postRequest);
-    }
-
-    private void receiveRestaurantData(float value,int restaurantID){
-        String url = "http://httpbin.org/post";
-        JsonObjectRequest postRequest = new JsonObjectRequest(Request.Method.POST, url,null,
+        String url = "http://10.10.1.170:8000/sensor_data/set";
+        Map<String, String>  params = new HashMap<String, String>();
+        params.put("id", String.valueOf(restaurantID));
+        params.put("value", String.valueOf(value));
+        JsonObjectRequest postRequest = new JsonObjectRequest(Request.Method.POST,url,new JSONObject(params),
                 response -> {
                     // response
                     Log.d("Response", response.toString());
                 }, error -> {
+                    // error
+                    Log.d("Error.Response", String.valueOf(error));
+                }
+        );
+        queue.add(postRequest);
+    }
+
+    private void receiveRestaurantData(){
+        String url = "http://10.10.1.170:8000/place/list";
+        JsonObjectRequest getRequest = new JsonObjectRequest(Request.Method.GET, url,null,
+                response -> {
+                    // response
+                    try {
+                        ArrayList<JSONObject> restaurantList= (ArrayList<JSONObject>) response.get("items");
+                        Log.d("array",restaurantList.toString());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }, error -> {
             // error
             Log.d("Error.Response", String.valueOf(error));
         }
-        ) {
-            @Override
-            protected Map<String, String> getParams()
-            {
-                Map<String, String>  params = new HashMap<String, String>();
-                params.put("id", String.valueOf(restaurantID));
-                params.put("value", String.valueOf(value));
-                return params;
-            }
-        };
-        queue.add(postRequest);
+        );
+        queue.add(getRequest);
 
     }
 
@@ -283,7 +279,7 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     protected boolean checkRange(LatLng sLatLng){
 
         for(LatLng dLatLng:restaurantLocations){
-            if(Math.acos(Math.sin(1.3963) * Math.sin(dLatLng.latitude) + Math.cos(sLatLng.latitude) *
+            if(Math.acos(Math.sin(sLatLng.latitude) * Math.sin(dLatLng.latitude) + Math.cos(sLatLng.latitude) *
                     Math.cos(dLatLng.latitude) * Math.cos(dLatLng.longitude - (sLatLng.longitude))) * 6371 <= 0.1)
             {
                 return true;
