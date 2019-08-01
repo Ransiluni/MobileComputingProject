@@ -1,29 +1,11 @@
 var express = require('express');
 var router = express.Router();
-
 var mongoose = require('mongoose');
-// try {
-//     mongoose.connect("mongodb://localhost:27017/mobileApp"); //- starting a db connection
-// }catch(err) {
-//   console.log(err)
-//     //mongoose.createConnection("mongodb://localhost:27017/mobileApp"); //- starting another db connection
-// }
-//mongoose.connect("mongodb://localhost:27017/mobileApp"); //'mongodb://127.0.0.1:27017/Chat'
+
 mongoose.Promise = global.Promise;
 var Schema = mongoose.Schema;
 
-var sensorDataSchema = new Schema({
-  _id:Number,
-  light: Number,
-  noise: Number,
-  temp:Number,
-  time_update:Number,
-  lat:Number,
-  long:Number,
-}, {collection: 'sensor_data'});
-
-var SensorData = mongoose.model('sensor_data', sensorDataSchema);
-
+var SensorData = require("../models/Sensor_Data")
 
 var light_array=[];
 var temp_array=[];
@@ -59,10 +41,16 @@ router.post('/set', function(req, res,next) {
         
         
         mongoose.connect("mongodb://localhost:27017/mobileApp",function(err, db) { //- starting a db connection
-        SensorData.update(myquery, newvalues).then( function(err, res,stat) {
+        SensorData.update(myquery, newvalues).then( function(err, res) {
         if (err) {console.log(err)};
         if (res){console.log(res)}
-        console.log(stat)
+
+
+        light_array=[]
+        temp_array=[]
+        noise_array=[]
+
+
         console.log("1 document updated");
         });
         SensorData.find({}).then(function(items){
@@ -79,7 +67,4 @@ router.post('/set', function(req, res,next) {
   res.send('Success')
   
 });
-
-  
-
 module.exports = router;
