@@ -25,7 +25,7 @@ router.get('/provide/:lat/:long', function(req, res,next) {
     return d;
   }
 
-  mongoose.connect("mongodb://localhost:27017/mobileApp",function(err, db) {
+  mongoose.connect("mongodb://shyani:shyani123@ds157857.mlab.com:57857/sensor_data",function(err, db) {
     SensorData.find({})
     .then(function(items) {
       final=[]
@@ -45,7 +45,7 @@ router.get('/provide/:lat/:long', function(req, res,next) {
 
 //send all places with lat and long 
 router.get('/list', function(req, res,next) {
-  mongoose.connect("mongodb://localhost:27017/mobileApp",function(err, db) {
+  mongoose.connect("mongodb://shyani:shyani123@ds157857.mlab.com:57857/sensor_data",function(err, db) {
     SensorData.find({},{_id:0,lat:1,long:1})
     .then(function(items) {
       res.send({items});

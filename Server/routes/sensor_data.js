@@ -41,7 +41,7 @@ router.post('/set', function(req, res,next) {
         var newvalues = {$set: { "light": avg_light, "temp":avg_temp,"noise":avg_noise,"time_update":current_Time }};
         
         
-        mongoose.connect("mongodb://localhost:27017/mobileApp",function(err, db) { //- starting a db connection
+        mongoose.connect("mongodb://shyani:shyani123@ds157857.mlab.com:57857/sensor_data",function(err, db) { //- starting a db connection
         SensorData.update(myquery, newvalues).then( function(err, res) {
         if (err) {console.log(err)};
         if (res){console.log(res)}
