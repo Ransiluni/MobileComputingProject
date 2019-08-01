@@ -119,7 +119,7 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     }
 
     private void sendSensorData(float value,int restaurantID){
-        String url = "http://10.10.1.170:8000/sensor_data/set";
+        String url = "http://10.10.1.170:8000/data/set";
         Map<String, String>  params = new HashMap<String, String>();
         params.put("id", String.valueOf(restaurantID));
         params.put("value", String.valueOf(value));
