@@ -14,6 +14,7 @@ var current_Time=new Date().getTime();
 
 //sensor data append
 router.post('/set', function(req, res,next) {
+    console.log(req.body)
     var lat=req.body.lat; 
     var long=req.body.long; 
     var light=req.body.light_data; 
@@ -57,7 +58,6 @@ router.post('/set', function(req, res,next) {
           console.log(items)
         })
         console.log("update_done")
-        res.send('Updated')
         db.close();
     });
 
