@@ -66,7 +66,7 @@ var http = require('http'),
     //     console.log(data)
     //   });
     // });
-    server.listen("8000");
+    server.listen(port);
     
     
     module.exports = app;

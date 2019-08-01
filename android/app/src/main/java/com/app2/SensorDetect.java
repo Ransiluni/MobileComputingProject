@@ -1,6 +1,7 @@
 package com.app2;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.Service;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -11,7 +12,9 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
@@ -24,23 +27,24 @@ import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.facebook.imagepipeline.common.SourceUriType;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -57,10 +61,19 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     private long UPDATE_INTERVAL = 2 * 1000;  /* 10 secs */
     private long FASTEST_INTERVAL = 2000; /* 2 sec */
     private ArrayList<LatLng> restaurantLocations =new ArrayList<LatLng>();
-    private int currentRestaurant;
-    private Sensor s;
+    private LatLng currentRestaurant;
+    private Sensor light;
+    private Sensor sound;
+    private Sensor temp;
 
+    private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
+    private static String fileName = null;
+    private String [] permissions = {Manifest.permission.RECORD_AUDIO};
+    private MediaRecorder recorder = null;
+    private double amplitudeValue;
+    private long lastTime=Calendar.getInstance().getTimeInMillis();
     private LocationManager locationManager;
+    private ArrayList<Float> sensor_Data=new ArrayList<Float>();
 
     @Nullable
     @Override
@@ -71,11 +84,32 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     @Override
     public void onCreate() {
         super.onCreate();
-        queue= Volley.newRequestQueue(getBaseContext());
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions((Activity) getBaseContext(), permissions, REQUEST_RECORD_AUDIO_PERMISSION);
+        }
+        queue= Volley.newRequestQueue( getBaseContext());
         sm=(SensorManager) getSystemService(SENSOR_SERVICE);
-        s=sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+//        List<Sensor> msensorList = sm.getSensorList(Sensor.TYPE_ALL);
+//
+//        // Print how may Sensors are there
+//
+//
+//        // Print each Sensor available using sSensList as the String to be printed
+//        String sSensList = "";
+//        Sensor tmp;
+//        int x,i;
+//        for (i=0;i<msensorList.size();i++){
+//            tmp = msensorList.get(i);
+//            sSensList = " "+sSensList+tmp.getName(); // Add the sensor name to the string of sensors available
+//        }
+//        Log.i("App",sSensList);
+//        Toast.makeText(this,sSensList,Toast.LENGTH_LONG).show();
+        light=sm.getDefaultSensor(Sensor.TYPE_LIGHT);
+        //light=sm.getDefaultSensor(Sensor.TYPE_);
+
         receiveRestaurantData();
-        restaurantLocations.add(new LatLng(0.11,80.7700));  // add restaurant locations through HTTP call
+
+       // restaurantLocations.add(new LatLng(0.11,80.7700));  // add restaurant locations through HTTP call
 }
 
     @Override
@@ -113,35 +147,49 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     @Override
     public void onSensorChanged(SensorEvent event) {
         float[] values = event.values;
+        sensor_Data.add(values[0]);
         String value="Sensor Value : " + values[0];
-        Toast.makeText(this, value, Toast.LENGTH_SHORT).show();
-        sendSensorData(values[0],currentRestaurant);
+
+        sendSensorData();
     }
 
-    private void sendSensorData(float value,int restaurantID){
-        String url = "http://10.10.1.170:8000/sensor_data/set";
-        Map<String, String>  params = new HashMap<String, String>();
-        params.put("id", String.valueOf(restaurantID));
-        params.put("value", String.valueOf(value));
-        JsonObjectRequest postRequest = new JsonObjectRequest(Request.Method.POST,url,new JSONObject(params),
-                response -> {
-                    // response
-                    Log.d("Response", response.toString());
-                }, error -> {
-                    // error
-                    Log.d("Error.Response", String.valueOf(error));
-                }
-        );
-        queue.add(postRequest);
+    private void sendSensorData(){
+        long diff=Calendar.getInstance().getTimeInMillis()-lastTime;
+        Log.d("AAAAAAAAAAAAAAA", lastTime+"   "+Calendar.getInstance().getTimeInMillis());
+        if(diff>20000){
+            String url = "https://mobilecomputingproject.herokuapp.com/data/set";
+            Map<String, String>  params = new HashMap<String, String>();
+            Toast.makeText(this, String.valueOf(calculateAverage(sensor_Data)), Toast.LENGTH_SHORT).show();
+            params.put("lat", String.valueOf(currentRestaurant.latitude));
+            params.put("long", String.valueOf(currentRestaurant.longitude));
+            params.put("light_data", String.valueOf(calculateAverage(sensor_Data)));
+            params.put("noise_data", String.valueOf(amplitudeValue));
+            JsonObjectRequest postRequest = new JsonObjectRequest(Request.Method.POST,url,new JSONObject(params),
+                    response -> {
+                        // response
+                        Log.d("Response", response.toString());
+                    }, error -> {
+                // error
+                Log.d("Error.Response", String.valueOf(error));
+            }
+            );
+            lastTime=Calendar.getInstance().getTimeInMillis();
+            queue.add(postRequest);
+        }
+
     }
 
     private void receiveRestaurantData(){
-        String url = "http://10.10.1.170:8000/place/list";
+        String url = "https://mobilecomputingproject.herokuapp.com/place/list";
         JsonObjectRequest getRequest = new JsonObjectRequest(Request.Method.GET, url,null,
                 response -> {
                     // response
                     try {
-                        ArrayList<JSONObject> restaurantList= (ArrayList<JSONObject>) response.get("items");
+                        JSONArray restaurantList= (JSONArray) response.get("items");
+                        for (int i=0;i<restaurantList.length();i++){
+                            JSONObject restaurant=restaurantList.getJSONObject(i);
+                            restaurantLocations.add(new LatLng(new Double(restaurant.get("lat").toString()),new Double(restaurant.get("long").toString())));
+                        }
                         Log.d("array",restaurantList.toString());
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -153,6 +201,17 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
         );
         queue.add(getRequest);
 
+    }
+
+    private double calculateAverage(ArrayList<Float> marks) {
+        float sum = 0;
+        if(!marks.isEmpty()) {
+            for (float mark : marks) {
+                sum += mark;
+            }
+            return sum/ marks.size();
+        }
+        return sum;
     }
 
     @Override
@@ -264,15 +323,17 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
     @Override
     public void onLocationChanged(Location location) {
         String msg = "Updated Location: " +
-                Double.toString(location.getLatitude()) + "," +
-                Double.toString(location.getLongitude());
+                location.getLatitude() + "," +
+                location.getLongitude();
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         // You can now create a LatLng Object for use with maps
         LatLng sLatLng = new LatLng(location.getLatitude(), location.getLongitude());
         if(checkRange(sLatLng)){
-            sm.registerListener(this,s, SensorManager.SENSOR_DELAY_NORMAL);
+            sm.registerListener(this,light, SensorManager.SENSOR_DELAY_NORMAL);
+            startRecording();
         }else{
             sm.unregisterListener(this);
+            sensor_Data.clear();
         }
     }
 
@@ -280,12 +341,50 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
 
         for(LatLng dLatLng:restaurantLocations){
             if(Math.acos(Math.sin(sLatLng.latitude) * Math.sin(dLatLng.latitude) + Math.cos(sLatLng.latitude) *
-                    Math.cos(dLatLng.latitude) * Math.cos(dLatLng.longitude - (sLatLng.longitude))) * 6371 <= 0.1)
+                    Math.cos(dLatLng.latitude) * Math.cos(dLatLng.longitude - (sLatLng.longitude))) * 6371 <= 0.8)
             {
+                currentRestaurant=dLatLng;
                 return true;
             }
         }
         return false;
 
+    }
+
+    private void startRecording() {
+        recorder = new MediaRecorder();
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        recorder.setOutputFile("/dev/null");
+        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+
+        try {
+            recorder.prepare();
+            recorder.start();
+            recorder.getMaxAmplitude();
+            Handler handler = new Handler();
+            handler.postDelayed(() -> {
+                if(recorder!=null){
+                int amplitude = recorder.getMaxAmplitude();
+                amplitudeValue = 20 * Math.log10(amplitude / 0.2);
+                Log.d("SSSSSSS",amplitudeValue+"  " + amplitude);
+                stopRecording();}
+            }, 10000);
+
+        } catch (Exception e) {
+            Log.i("App", e.toString());
+        }
+
+    }
+
+    private void stopRecording() {
+        try{
+            recorder.stop();
+            recorder.release();
+        }catch(RuntimeException stopException){
+            //handle cleanup here
+        }
+
+        recorder = null;
     }
 }
