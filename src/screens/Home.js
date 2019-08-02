@@ -5,7 +5,7 @@ import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplet
 
 class Home extends React.Component {
   static navigationOptions = {
-    title: 'Home'
+   header:null,
   };
   state = {
     search: '',
@@ -41,23 +41,23 @@ class Home extends React.Component {
           minLength={2} // minimum length of text to search
           autoFocus={false}
           returnKeyType={'search'} // Can be left out for default return key https://facebook.github.io/react-native/docs/textinput.html#returnkeytype
-          listViewDisplayed='auto'    // true/false/undefined
+          listViewDisplayed='false'    // true/false/undefined
           fetchDetails={true}
           renderDescription={row => row.description} // custom description render
           onPress={(data, details = null) => { // 'details' is provided when fetchDetails = true
             console.log(details.geometry.location.lat, details.geometry.location.lng);
-            fetch("https://mobilecomputingproject.herokuapp.com/place/provide/details.geometry.location.lat/details.geometry.location.lng")
+            fetch("https://mobilecomputingproject.herokuapp.com/place/provide/"+details.geometry.location.lat+"/"+details.geometry.location.lng)
               .then(response => response.json())
               .then((responseJson) => {
                 console.log(responseJson)
                 this.setState({
                   loading: false,
-                  restaurants: responseJson.items
+                  restaurants: responseJson.results
                 })
               })
               .catch(error => console.log(error)) //to catch the errors if any
           }
-        }
+          }
 
           getDefaultValue={() => ''}
 
@@ -70,11 +70,25 @@ class Home extends React.Component {
           }}
 
           styles={{
+            container:{
+              height:30,
+              zIndex:90,
+              width:'100%',
+              flex:1,
+              left:0,
+              top:0,
+            },
             textInputContainer: {
               width: '100%'
             },
+            listView:{
+              height:30,
+              backgroundColor:'black',
+              color:'white'
+            },
             description: {
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              color:'white'
             },
             predefinedPlacesDescription: {
               color: '#1faadb'
@@ -108,10 +122,19 @@ class Home extends React.Component {
           renderItem={({ item }) => <View>
             <TouchableOpacity
               style={styles.restaurants}
-              onPress={() => this.props.navigation.navigate('Profile')}
+              onPress={() => this.props.navigation.navigate('Profile', { "lat": item.lat, "long": item.long })}
             >
               <Text style={styles.title}>{item.name}</Text>
-            </TouchableOpacity></View>} />
+              <View style={{flexDirection: 'row'}}>
+              <Text style={styles.title1}>Light-Level : {item.light>500?"Pleasant":"Low-Light"}</Text>
+              <Text style={styles.title2}>Noise : {item.noise>100?"Loud":item.noise>70?"Busy":item.noise>40?"Calm":"Quiet" } ({Number(item.noise).toFixed(2)}dB)</Text>
+              </View>
+             
+
+
+            </TouchableOpacity>
+            </View>} />
+       
       </View>
     );
   }
@@ -135,21 +158,36 @@ const styles = StyleSheet.create({
   },
   list: {
     flex: 1,
+    top:50,
+    position:"absolute",
     backgroundColor: '#333333',
     width: '100%',
   },
   restaurants: {
     backgroundColor: '#ffffff',
-    height: 30,
+    height: 50,
     marginTop: 2,
     borderRadius: 4,
     borderWidth: 0.5,
     borderColor: '#d6d7da',
-    height: 40
   },
   title: {
-    fontSize: 25,
-    marginLeft: 10
+    fontWeight: 'bold',
+    fontSize: 20,
+    marginLeft: 20,
+    marginBottom:0
+
+  },
+  title1: {
+    fontSize: 15,
+    marginLeft: 15,
+    color:"red"
+
+  },
+  title2: {
+    fontSize: 15,
+    marginLeft: 20,
+    color:"blue"
 
   }
 });

@@ -46,6 +46,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import static com.facebook.react.bridge.UiThreadUtil.runOnUiThread;
 
 
 public class SensorDetect extends Service implements SensorEventListener , GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
@@ -104,7 +108,11 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
 //        }
 //        Log.i("App",sSensList);
 //        Toast.makeText(this,sSensList,Toast.LENGTH_LONG).show();
+
         light=sm.getDefaultSensor(Sensor.TYPE_LIGHT);
+        if(light==null){
+            light=sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        }
         //light=sm.getDefaultSensor(Sensor.TYPE_);
 
         receiveRestaurantData();
@@ -155,7 +163,6 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
 
     private void sendSensorData(){
         long diff=Calendar.getInstance().getTimeInMillis()-lastTime;
-        Log.d("AAAAAAAAAAAAAAA", lastTime+"   "+Calendar.getInstance().getTimeInMillis());
         if(diff>20000){
             String url = "https://mobilecomputingproject.herokuapp.com/data/set";
             Map<String, String>  params = new HashMap<String, String>();
@@ -326,22 +333,27 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
                 location.getLatitude() + "," +
                 location.getLongitude();
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-        // You can now create a LatLng Object for use with maps
+
         LatLng sLatLng = new LatLng(location.getLatitude(), location.getLongitude());
         if(checkRange(sLatLng)){
+            Log.d("Inside radius","TRUE");
             sm.registerListener(this,light, SensorManager.SENSOR_DELAY_NORMAL);
             startRecording();
         }else{
+            Log.d("Inside radius","FALSE");
             sm.unregisterListener(this);
             sensor_Data.clear();
+            stopRecording();
         }
     }
 
     protected boolean checkRange(LatLng sLatLng){
 
         for(LatLng dLatLng:restaurantLocations){
-            if(Math.acos(Math.sin(sLatLng.latitude) * Math.sin(dLatLng.latitude) + Math.cos(sLatLng.latitude) *
-                    Math.cos(dLatLng.latitude) * Math.cos(dLatLng.longitude - (sLatLng.longitude))) * 6371 <= 0.8)
+            double distance=Math.acos(Math.sin(sLatLng.latitude) * Math.sin(dLatLng.latitude) + Math.cos(sLatLng.latitude) *
+                    Math.cos(dLatLng.latitude) * Math.cos(dLatLng.longitude - (sLatLng.longitude))) * 6371;
+            Log.d("Distance",distance+"");
+            if( distance<= 0.8)
             {
                 currentRestaurant=dLatLng;
                 return true;
@@ -357,24 +369,42 @@ public class SensorDetect extends Service implements SensorEventListener , Googl
         recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
         recorder.setOutputFile("/dev/null");
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new RecorderTask(recorder), 0, 500);
         try {
             recorder.prepare();
             recorder.start();
-            recorder.getMaxAmplitude();
-            Handler handler = new Handler();
-            handler.postDelayed(() -> {
-                if(recorder!=null){
-                int amplitude = recorder.getMaxAmplitude();
-                amplitudeValue = 20 * Math.log10(amplitude / 0.2);
-                Log.d("SSSSSSS",amplitudeValue+"  " + amplitude);
-                stopRecording();}
-            }, 10000);
+//            Handler handler = new Handler();
+//            handler.postDelayed(() -> {
+//                if(recorder!=null){
+//                double amplitude = recorder.getMaxAmplitude();
+//                amplitudeValue = 20 * Math.log10(recorder.getMaxAmplitude() / 2700);
+//
+//                stopRecording();}
+//            }, 10000);
 
         } catch (Exception e) {
             Log.i("App", e.toString());
         }
 
+    }
+
+    private class RecorderTask extends TimerTask {
+        private MediaRecorder recorder;
+
+        public RecorderTask(MediaRecorder recorder) {
+            this.recorder = recorder;
+        }
+
+        public void run() {
+            runOnUiThread(() -> {
+                int amplitude = recorder.getMaxAmplitude();
+                double amplitudeVal = 20 * Math.log10((double)Math.abs(amplitude));
+                if (amplitudeVal>0){
+                    amplitudeValue=amplitudeVal;
+                }
+            });
+        }
     }
 
     private void stopRecording() {
